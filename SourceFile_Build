@@ -1,0 +1,125 @@
+# ======================================================================#
+# AUTHOR: David Coetzee													                        #
+# DATE: 16/08/2024														                          #
+# EMAIL: davec6505@gmail.com                                            #
+#-----------------------------------------------------------------------#
+# NOTES:																                                #
+# This is a generic makefile for any c/c++ file/files with a complex or	#
+# simple folder structure.												                      #
+# un-comment the OS if using Linux as rsync does not work on windows	  #
+# BUILD_TYPE for various outcomes for DEBUG / RELEASE					          #
+#                                                                       #
+#=======================================================================#
+#OS_TYPE	 	:= LINUX
+BUILD_TYPE  = $(RELEASE)
+#BUILD_TYPE  = $(DEBUG)
+MODULE_NAME = employee
+TARGET_NAME = emp
+
+ROOT_DIR := ../..
+OBJ_DIR  := $(ROOT_DIR)/objs/$(MODULE_NAME)
+
+#*****DONT MODIFY BELOW ATTRIBUTES****#
+BUILD_TIMESTAMP = $(shell date +'%d-%m-%Y.%H-%M-%S.%N')
+
+INSTALLATION_PATH = $(shell echo $$INSTALLATION_PATH)
+ifeq ($(INSTALLATION_PATH),)
+        INSTALLATION_PATH = $(ROOT_DIR)
+#       INSTALLATION_PATH = /usr/local/mycustombuild
+
+endif
+
+ifeq ($(OS_TYPE),LINUX)
+SYNC := make install
+else
+SYNC :=
+endif
+
+# C++ / C compiler
+CXX = g++
+CC  = gcc
+COMPILER := c
+ifeq ($(COMPILER),c)
+ CMP = $(CC)
+else 
+ CMP = $(CXX)
+endif
+
+
+# Library / binary
+CMP_TYPE := a
+ifeq ($(CMP_TYPE),)
+  TARGET_DIR = $(INSTALLATION_PATH)/bins
+  TARGET = $(TARGET_DIR)/$(TARGET_NAME)
+  LDXX := $(CMP)
+else
+ ifeq ($(CMP_TYPE),a)
+   TARGET_DIR = $(INSTALLATION_PATH)/libs
+   TARGET = $(TARGET_DIR)/lib$(TARGET_NAME).a
+   LDXX := ar rcs 
+ else ifeq ($(CMP_TYPE),so)
+   TARGET_DIR = $(INSTALLATION_PATH)/libs
+   TARGET = $(TARGET_DIR)/lib$(TARGET_NAME).so
+   LDXX := -shared
+   endif
+endif
+
+
+#*****DONT MODIFY ABOVE ATTRIBUTES****#
+
+ifeq ($(CMP),gcc)
+ SRCS := $(wildcard *.c)
+ OBJS := $(SRCS:%.c=$(OBJ_DIR)/%.o)
+ STDFLAG := 
+else
+ SRCS := $(wildcard *.cpp)
+ OBJS := $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
+ STDFLAG := -std=c++17 
+endif
+
+INC = -I./ -I$(ROOT_DIR)/include
+
+#choose release/debug
+DEBUG   = -pipe -g -Wall -W -fPIC
+RELEASE = -pipe -O2 -Wall -W -fPIC
+
+# -D stands for DEFINE. If want to define any macro which is used in code for\
+    #  timestamp or git revision etc, can be used in this way.
+CC_OPT = -DBUILD_TIMESTAMP_STR=\"$(BUILD_TIMESTAMP)\" \
+	     -DINSTALLATION_PATH_STR=\"$(INSTALLATION_PATH)\"
+
+#UNCOMMENT IF LIKE TO SEE FOLLOWING WARNINGS. ATLEAST ONCE THIS NEEDS TO BE RUN\
+    FOR EACH MODULE
+WARN=-Wall -Wextra -Werror -Wwrite-strings -Wno-parentheses -pedantic \
+     -Warray-bounds -Wno-unused-variable -Wno-unused-function \
+     -Wno-unused-parameter -Wno-unused-result
+#WARN = -g -Wall
+
+CCFLAGS =  $(STDFLAG) $(BUILD_TYPE) $(CC_OPT) $(WARN) $(INC)
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(LDXX) $@ $^ 
+	$(SYNC)
+
+$(OBJS): $(SRCS)
+	$(CXX) $(CCFLAGS) -o $@ -c $<
+
+build_dir:
+	@echo Creating object directory if not exist
+	mkdir -p $(OBJ_DIR)
+	mkdir -p $(TARGET_DIR) 
+# It also can be written as $(TARGET_DIR)
+
+clean:
+	@echo Clean Build
+	-rm -rf $(OBJS) $(TARGET)
+
+install:
+	rsync -avz *.h $(ROOT_DIR)/include/
+
+.PHONY: clean build_dir all install
+
+test:
+		@echo $(SOURCE_1) $(OBJS)
