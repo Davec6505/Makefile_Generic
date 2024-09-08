@@ -1,0 +1,157 @@
+#################################################################################
+# Author: David Coetzee.							#
+# email: davec6505@gmail.com							#
+# 										#
+#										#
+# Desctiption:  A make file to compile outside the MPLABX ide of 		#
+# 	        Microchip, keeping the xc8 compiler downloaded from		#
+# 	        www.microchip.com 						#
+# 		This file will be updated as I learn more about the xc		#
+# 		compilers from Microchip.					#
+#										#
+# xc8 Manual extracts:								#
+# 		1) -Wl, driver is used to change the default linker		#
+# 		        options							#
+#		2) -mdfp="PATH"  path to saved DFP folder			#
+#										#
+#										#
+#################################################################################
+
+
+
+
+#################################################################################
+#				DEVICE SPECIFICS				#
+#################################################################################
+DEVICE := 16f690
+
+MP_AS_DIR="/opt/microchip/xc8/v2.50/bin"
+MP_LD_DIR="/opt/microchip/xc8/v2.50/bin"
+MP_AR_DIR="/opt/microchip/xc8/v2.50/bin"
+DFP_DIR = /opt/microchip/mplabx/v6.20/packs/Microchip/PIC16Fxxx_DFP/1.6.156/xc8
+
+
+#################################################################################
+#       	xc8 -  COMPILER SPECIFIC EXPLANATIONS				#
+#################################################################################
+#-Wl,-Map="path to output file for".map \
+ -Wl,--defsym=__MPLAB_BUILD=1  \
+ -mdfp="/opt/microchip/mplabx/v6.20/packs/Microchip/PIC16Fxxx_DFP/1.6.156/xc8" \
+ -fno-short-double \
+ -fno-short-float \
+ -O0   "optomisaton level" \
+ -fasmfile \
+ -maddrqual=ignore \
+ -xassembler-with-cpp \
+ -mwarn=-3 \
+ -msummary=-psect,-class,+mem,-hex,-file  \
+ -ginhx32 \
+ -Wl,--data-init \
+ -mno-keep-startup \
+ -mno-osccal \
+ -mno-resetbits \
+ -mno-save-resetbits \
+ -mno-download -mno-stackcall \
+ -mno-default-config-bits \
+ -std=c99 \
+ -gdwarf-3 \
+ -mstack=compiled:auto:auto  \
+ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+ -Wa,-a="path to file".lst  " driver option" \
+ -fmax-errors=n "How many errors are output before terminating compilation" \
+ -mwarn=level   "The threshold at which warnings are output" \
+ -w             "The suppression of all warning messages"    \
+ -Wpedantic     "The acceptance of non-standard language extensions" \
+ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+
+
+#########################################################################
+#                           DIRECTORIES                                 #
+#########################################################################
+MODULE := _test
+ROOT      := ..
+OBJ_DIR   := $(ROOT)/objs
+SRC_DIR   := $(ROOT)/srcs
+INC_DIR   := $(ROOT)/incs
+BIN_DIR   := $(ROOT)/bins
+BUILD_DIR := $(ROOT)/build
+OUT_DIR   := $(ROOT)/other
+TARGET = $(BIN_DIR)/t1
+#########################################################################
+#                              WARNINGS                                 #
+#########################################################################
+W_EN := 1
+
+ifeq ($(W_EN),1)
+# How many errors are output prior to terminating compilation
+MAXE := -fmax-errors=5
+#threshold at which warnings are output
+ERR_LVL := -mwarn=5
+#Acceptance of non-standard language
+ERR_NSTD :=
+#-Wpedantic
+#control of all warnings
+WARN := $(MAXE) $(ERR_LVL) $(ERR_NSTD)
+#Direct the compiler outputs
+DIRECT := -Wl,-Map=$(OUT_DIR).map -Wa,-a=$(OUT_DIR)  -mno-config -mdfp=$(DFP_DIR) -mwarn=-3
+else
+WARN := -w
+endif
+
+#########################################################################
+#                            COMPILER                                   #
+#########################################################################
+STD := c99
+ifeq ($(STD),c99)
+CC := xc8-cc
+MCU := -mcpu=$(DEVICE)
+else
+CC := xc8
+MCU := --CHIP=$(DEVICE)
+endif
+
+INC := -I$(INC_DIR)
+#######################################################################
+#			     AUTOMATE				      #
+#######################################################################
+SRC := $(wildcard *.c)
+OBJ := $(SRC:%.c=%.p1)
+OBJS := $(OBJ:%.p1=$(OBJ_DIR)/%.p1)
+
+AUTO := a 
+ifeq ($(AUTO),)
+all: t1.p1  t2.p1
+	$(CC) $(MCU) $(DIRECT) -o $(BIN_DIR)/t1.elf  ../objs/t1.p1 ../objs/t2.p1
+
+t1.p1: t1.c
+	$(CC) $(MCU) $(DIRECT) -o $(OBJ_DIR)/t1.p1 -c t1.c -I../incs
+
+t2.p1: t2.c
+	$(CC) $(MCU) $(DIRECT) -o $(OBJ_DIR)/t2.p1 -c t2.c -I../incs
+
+else
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	@echo $(SRC) " : " $(OBJ)
+	$(CC) $(MCU) $(DIRECT) -o $@ $^
+
+$(OBJ_DIR)/%.p1: %.c
+	@echo $(OBJS)
+	$(CC) $(MCU) $(DIRECT) -o $(OBJ_DIR)/$@  -c  $< $(INC)
+endif
+
+
+.PHONY: clean
+
+ 
+clean:
+	rm -rf $(BIN_DIR)/*.o $(BIN_DIR)/*.hex $(BIN_DIR)/*.d $(BIN_DIR)/*.p1 $(BIN_DIR)/*.hxl \
+	       $(BIN_DIR)/*.lst $(BIN_DIR)/*.rlf $(BIN_DIR)/*.s $(BIN_DIR)/*.cmf $(BIN_DIR)/*.elf \
+               $(BIN_DIR)/*.s  $(BIN_DIR)/*.sdb  $(BIN_DIR)/*.sym
+	rm -rf $(OBJ_DIR)/*d $(OBJ_DIR)/*.p1
+	rm -rf ../*.o ../*.hex ../*.d ../*.p1 ../*.hxl ../*.lst ../*.rlf ../*.s ../*.cmf ../*.elf \
+	       	../*.sdb ../*.sym
+	rm -rf *.d *.p1
