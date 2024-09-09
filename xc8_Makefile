@@ -28,8 +28,8 @@ DEVICE := 16f690
 MP_AS_DIR="/opt/microchip/xc8/v2.50/bin"
 MP_LD_DIR="/opt/microchip/xc8/v2.50/bin"
 MP_AR_DIR="/opt/microchip/xc8/v2.50/bin"
-DFP_DIR = /opt/microchip/mplabx/v6.20/packs/Microchip/PIC16Fxxx_DFP/1.6.156/xc8
-
+#DFP_DIR = /opt/microchip/mplabx/v6.20/packs/Microchip/PIC16Fxxx_DFP/1.6.156/xc8
+DFP_DIR = /home/davec6505/Public/xc8/packs/PIC16Fxxx_DFP/1.6.156/xc8
 
 #################################################################################
 #       	xc8 -  COMPILER SPECIFIC EXPLANATIONS				#
@@ -78,39 +78,51 @@ INC_DIR   := $(ROOT)/incs
 BIN_DIR   := $(ROOT)/bins
 BUILD_DIR := $(ROOT)/build
 OUT_DIR   := $(ROOT)/other
-TARGET = $(BIN_DIR)/t1
+TARGET	  := $(BIN_DIR)/$(MODULE)
+
+
+#########################################################################
+#                            COMPILER                                   #
+#########################################################################
+COMPILER  := c99
+ifeq ($(COMPILER),c99)
+CC := xc8-cc
+MCU := -mcpu=$(DEVICE)
+STD := c99
+else
+CC := xc8
+MCU := --CHIP=$(DEVICE)
+STD := c90
+endif
+
+
 #########################################################################
 #                              WARNINGS                                 #
 #########################################################################
 W_EN := 1
 
 ifeq ($(W_EN),1)
-# How many errors are output prior to terminating compilation
-MAXE := -fmax-errors=5
-#threshold at which warnings are output
-ERR_LVL := -mwarn=5
+
 #Acceptance of non-standard language
-ERR_NSTD :=
-#-Wpedantic
-#control of all warnings
-WARN := $(MAXE) $(ERR_LVL) $(ERR_NSTD)
+ERR_NSTD := -Wpedantic
+#Debug specific controls
+DEBG :=  -gdwarf-3
+#iOptions for control of all warnings and errors
+WARN :=-mwarn=-3 -fmax-errors=5
+#cOptions to ouput asmbler lst file
+ASM := -Wa,-a=$(OUT_DIR)/$(MODULE).lst 
+# Linker driver options
+LINK := -Wl,-Map=$(OUT_DIR)/$(MODULE).map 
 #Direct the compiler outputs
-DIRECT := -Wl,-Map=$(OUT_DIR).map -Wa,-a=$(OUT_DIR)  -mno-config -mdfp=$(DFP_DIR) -mwarn=-3
+DIRECT := $(LINK) $(ASM) -mno-config -mdfp=$(DFP_DIR) $(WARN) \
+	  -fno-short-double -fno-short-float -O0 -fasmfile -msummary=-psect,-class,+mem,-hex,-file  \
+          -ginhx32 -Wl,--data-init -mno-keep-startup -mno-osccal -mno-resetbits -mno-save-resetbits -mno-download \
+	  -mno-stackcall -mno-default-config-bits -std=$(STD) -mstack=compiled:auto:auto
+
 else
 WARN := -w
 endif
 
-#########################################################################
-#                            COMPILER                                   #
-#########################################################################
-STD := c99
-ifeq ($(STD),c99)
-CC := xc8-cc
-MCU := -mcpu=$(DEVICE)
-else
-CC := xc8
-MCU := --CHIP=$(DEVICE)
-endif
 
 INC := -I$(INC_DIR)
 #######################################################################
@@ -150,8 +162,9 @@ endif
 clean:
 	rm -rf $(BIN_DIR)/*.o $(BIN_DIR)/*.hex $(BIN_DIR)/*.d $(BIN_DIR)/*.p1 $(BIN_DIR)/*.hxl \
 	       $(BIN_DIR)/*.lst $(BIN_DIR)/*.rlf $(BIN_DIR)/*.s $(BIN_DIR)/*.cmf $(BIN_DIR)/*.elf \
-               $(BIN_DIR)/*.s  $(BIN_DIR)/*.sdb  $(BIN_DIR)/*.sym
-	rm -rf $(OBJ_DIR)/*d $(OBJ_DIR)/*.p1
+               $(BIN_DIR)/*.s  $(BIN_DIR)/*.sdb  $(BIN_DIR)/*.sym $(BIN_DIR)/*.i
+	rm -rf $(OBJ_DIR)/*d $(OBJ_DIR)/*.p1 $(OBJ_DIR)/*.i
 	rm -rf ../*.o ../*.hex ../*.d ../*.p1 ../*.hxl ../*.lst ../*.rlf ../*.s ../*.cmf ../*.elf \
 	       	../*.sdb ../*.sym
 	rm -rf *.d *.p1
+	rm -rf $(OUT_DIR)/*.map
