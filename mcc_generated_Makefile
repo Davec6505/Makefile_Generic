@@ -1,0 +1,93 @@
+DEVICE := 16f13145
+MODULE := _test
+
+DFP_DIR = /home/davec6505/Public/xc8/packs/PIC16F1xxxx_DFP.1.25.389/xc8
+
+
+MODULE := main
+ROOT      := .
+OBJ_DIR   := $(ROOT)/objs
+SRC_DIR   := $(ROOT)
+MCC_DIR	  := mcc_generated_files
+BIN_DIR   := $(ROOT)/bins
+OUT_DIR   := $(ROOT)/other
+INC_DIR   := $(MCC_DIR)
+TARGET    := $(BIN_DIR)/$(MODULE)
+DIR  	  := $(MCC_DIR)/timer/src  \
+	     $(MCC_DIR)/system/src \
+	     $(MCC_DIR)/crc/src    \
+	     $(MCC_DIR)/nvm/src    \
+	     $(MCC_DIR)/clb/src
+
+COMPILER  := c99
+ifeq ($(COMPILER),c99)
+CC := xc8-cc
+MCU := -mcpu=$(DEVICE)
+STD := c99
+else
+CC := xc8
+MCU := --CHIP=$(DEVICE)
+STD := c90
+endif
+
+#Direct the compiler outputs for pcode
+DIRECT_OBJ := -c -mdfp=$(DFP_DIR) -fno-short-double -fno-short-float -O0 -fasmfile -maddrqual=require -xassembler-with-cpp -mwarn=-3 -Wa,-a -DXPRJ_default=default -msummary=-psect,-class,+mem,-hex,-file -ginhx32 -Wl,--data-init -mno-keep-startup -mno-osccal -mno-resetbits -mno-save-resetbits -mno-download -mno-stackcall -mno-default-config-bits -std=$(STD) -gdwarf-3 -mstack=compiled:auto:auto
+
+# Direct compiler output for linker 
+DIRECT_LINK := -Wl,-Map=$(OUT_DIR)/$(MODULE).map -DXPRJ_default=default -Wl,--defsym=__MPLAB_BUILD=1 -mdfp=$(DFP_DIR) -fno-short-double -fno-short-float -O0 -fasmfile -maddrqual=require -xassembler-with-cpp -mwarn=-3 -Wa,-a -msummary=-psect,-class,+mem,-hex,-file  -ginhx32 -Wl,--data-init -mno-keep-startup -mno-osccal -mno-resetbits -mno-save-resetbits -mno-download -mno-stackcall -mno-default-config-bits -std=$(STD) -gdwarf-3 -mstack=compiled:auto:auto -Wl,--memorysummary,$(OUT_DIR)/memoryfile.xml
+
+
+INC := -I$(INC_DIR)/timer -I$(INC_DIR)/system
+
+#SRC := $(foreach dir,$(DIR),$(filter %.c %.s,$(dir)))
+SRC  := $(foreach dir,$(DIR),$(wildcard $(dir)/*.c))
+SRC += main.c
+
+ASM  := $(foreach dir,$(DIR),$(wildcard $(dir)/*.s))
+ASMS  := $(ASM:%.s=$(OBJ_DIR)/%.o)
+
+OBJ  := $(SRC:%.c=%.p1)
+OBJS  := $(SRC:%.c=$(OBJ_DIR)/%.p1)
+OBJS += $(ASMS)
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS) 
+	@echo $(OBJS)
+	$(CC) $(MCU) $(DIRECT_LINK) -o $@ $^
+	$(call move)
+
+$(OBJ_DIR)/%.p1: %.c
+	$(CC) $(MCU) $(DIRECT_OBJ) -c $< -o $@ $(INC)
+
+$(OBJ_DIR)/%.o: %.s
+	$(CC) $(MCU) $(DIRECT_OBJ) -o $@ $<
+
+
+.PHONY: clean  build_dir
+
+build_dir:
+	mkdir -p $(OBJ_DIR)/$(MCC_DIR)/timer/src
+	mkdir -p $(OBJ_DIR)/$(MCC_DIR)/system/src
+	mkdir -p $(OBJ_DIR)/$(MCC_DIR)/crc/src
+	mkdir -p $(OBJ_DIR)/$(MCC_DIR)/clb/src
+	mkdir -p $(OBJ_DIR)/$(MCC_DIR)/nvm/src
+
+
+
+
+
+clean:
+	rm -rf $(BIN_DIR)/* \
+	       $(OBJ_DIR)/*.p1  $(OBJ_DIR)/*.i $(OBJ_DIR)/*.d \
+	       $(OBJ_DIR)/$(MCC_DIR)/timer/src/*  \
+	       $(OBJ_DIR)/$(MCC_DIR)/system/src/* \
+	       $(OBJ_DIR)/$(MCC_DIR)/clb/src/*    \
+	       $(OBJ_DIR)/$(MCC_DIR)/crc/src/*    \
+	       $(OBJ_DIR)/$(MCC_DIR)/nvm/src/*
+
+define move
+	rm -r $(BIN_DIR)/*.d $(BIN_DIR)/*.p1 $(BIN_DIR)/*.o $(BIN_DIR)/*.sdb $(BIN_DIR)/*.rlf \
+	      $(BIN_DIR)/*.sym $(BIN_DIR)/*.cmf $(BIN_DIR)/*.i
+	mv $(BIN_DIR)/*.hxl $(BIN_DIR)/*.lst $(OUT_DIR)
+endef
