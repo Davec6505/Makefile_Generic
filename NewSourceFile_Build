@@ -27,13 +27,13 @@ INSTALL_LOC =
 
 #OBJ_DIR  := $(ROOT_DIR)/objs/$(MODULE_NAME)
 SRC_DIR  := $(ROOT_DIR)/$(shell ls $(ROOT_DIR) | awk /sr/'{print $$0}')
-OBJ_DIR  := $(ROOT_DIR)/$(shell ls $(ROOT_DIR) | awk /ob/'{print $$0}')
 INC_DIR  := $(ROOT_DIR)/$(shell ls $(ROOT_DIR) | awk /in/'{print $$0}')
-BIN_DIR	 := $(ROOT_DIR)/$(shell ls $(ROOT_DIR) | awk /bi/'{print $$0}')/$(MODULE_NAME)
 
 PROJ_DIR := $(SRC_DIR)/$(PROJ)
 MODULE_NAME := $(notdir $(PROJ_DIR))
 
+OBJ_DIR  := $(ROOT_DIR)/$(shell ls $(ROOT_DIR) | awk /ob/'{print $$0}')/$(MODULE_NAME)
+BIN_DIR	 := $(ROOT_DIR)/$(shell ls $(ROOT_DIR) | awk /bi/'{print $$0}')/$(MODULE_NAME)
 
 #*****DONT MODIFY BELOW ATTRIBUTES****#
 BUILD_TIMESTAMP = $(shell date +'%d-%m-%Y.%H-%M-%S.%N')
@@ -69,7 +69,7 @@ endif
 CMP_TYPE :=
 ifeq ($(CMP_TYPE),)
   TARGET_DIR = $(INSTALLATION_PATH)/bins
-  TARGET = $(TARGET_DIR)/$(TARGET_NAME)
+  TARGET = $(TARGET_DIR)/$(MODULE_NAME)
   LDXX := $(CMP)
 else
  ifeq ($(CMP_TYPE),a)
@@ -120,18 +120,18 @@ WARN=-Wall -Wextra -Werror -Wwrite-strings -Wno-parentheses -pedantic \
 
 CCFLAGS =  $(STDFLAG) $(BUILD_TYPE) $(CC_OPT) $(WARN) $(INC)
 
-all:
-#$(TARGET)
-	@echo "MODULE_NAME:= " $(MODULE_NAME)
-	@echo "OBJ_DIR:= " $(OBJ_DIR)
-	@echo "SRC_DIR:= "$(SRC_DIR)
-	@echo "PROJ_DIR:= "$(PROJ_DIR)
-	@echo "SRC:= "$(SRC)
-	@echo "OBJS:= "$(OBJS)
-	@echo "BIN_DIR:= "$(BIN_DIR)
+all: $(TARGET)
+	# @echo "MODULE_NAME:= " $(MODULE_NAME)
+	# @echo "OBJ_DIR:= " $(OBJ_DIR)
+	# @echo "SRC_DIR:= "$(SRC_DIR)
+	# @echo "PROJ_DIR:= "$(PROJ_DIR)
+	# @echo "SRC:= "$(SRC)
+	# @echo "OBJS:= "$(OBJS)
+	# @echo "BIN_DIR:= "$(BIN_DIR)
+	# @echo "TARGET:= "$(TARGET)
 
 $(TARGET): $(OBJS)
-	$(LDXX) -o $@ $^
+	$(LDXX)  $@ $^
 #	$(SYNC)
 
 $(OBJS): $(SRC)
