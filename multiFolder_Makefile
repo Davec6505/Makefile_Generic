@@ -1,0 +1,45 @@
+# Find all directories in the current working directory and assign their names to a variable
+CURRENT_FOLDERS := $(shell find $(PWD) -maxdepth 1 -type d 2>/dev/null)
+
+TMP := $(for i in $(CURRENT_FOLDERS), $(i) ; echo $(i) ; )
+
+
+
+OBJS :=   $(PWD)/objs/ll.o $(PWD)/objs/main.o
+SRCS := $(PWD)/srcs/ll/ll.c $(PWD)/srcs/main.c
+TARGET := $(PWD)/bin/main
+
+
+
+# Default target
+all:  $(TARGET)
+
+$(TARGET): $(OBJS)
+	@echo "Linking $^ to $@"
+	mkdir -p $(dir $@)
+	gcc -o $@ $^
+	@echo "Current Folders: $(CURRENT_FOLDERS)"	
+	@echo "Temporary Variable: $(TMP)"
+
+$(OBJS): $(SRCS)
+	@echo "Compiling source files to object files..." 
+	@mkdir -p $(dir $(OBJS))
+	@for src in $(SRCS); do \
+		obj=$(PWD)/objs/$$(basename $$src .c).o; \
+		echo "Compiling $$src to $$obj"; \
+		gcc -c $$src -o $$obj -I./incs/ll; \
+	done
+
+
+run: $(TARGET)
+	@echo "Running the program..."
+	@./$(TARGET)
+
+.PHONY: all clean run
+
+clean:
+	@echo "Cleaning up..."
+	rm -rf $(PWD)/objs/*.o
+	rm -rf $(PWD)/bin/main
+	@echo "Cleanup complete."
+
