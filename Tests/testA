@@ -1,0 +1,23 @@
+define setOB
+  $(eval OB = $(strip $(shell echo $(DIRS) | awk -F'/' '{ print $$2 }' | sed 's/..$$//'))$$1); \
+  $(eval IN = $(strip $(shell echo $(DIRS) | awk -F'/' '{ print $$3 }' | sed 's/..$$//'))$$1)
+
+endef
+define obIt
+  $(eval BI = $(strip $(shell echo $(DIRS) | awk -F'/' '{ print $$5 }' | sed 's/..$$//'))$$1); \
+  $(eval SC = $(strip $(shell echo $(DIRS) | awk -F'/' '{ print $$4 }' | sed 's/..$$//'))$$1)
+  
+endef
+
+
+define  setDirs
+	for i in $(DIRS); do \
+		if [ -d "$$i" ]; then \
+			echo "$$i" | sed 's/..\///'; \
+			echo "Directory: $$S"; \
+		else \
+			echo "File: $$i"; \
+		fi; \
+	done
+endef
+
